@@ -16,6 +16,7 @@ use Neos\Neos\Controller\Module\AbstractModuleController;
 use Neos\Neos\Domain\Model\Site;
 use Neos\Neos\Domain\Repository\SiteRepository;
 use Neos\Neos\Domain\Service\ContentContext;
+use Neos\Neos\Domain\Service\UserService as DomainUserService;
 use Neos\Neos\Service\NodeOperations;
 
 /**
@@ -57,12 +58,20 @@ class ContentTransferController extends AbstractModuleController
     protected $translator;
 
     /**
+     * @Flow\Inject
+     * @var DomainUserService
+     */
+    protected $domainUserService;
+
+    /**
      * Shows form to transfer content
      */
     public function indexAction(?Site $sourceSite = null, ?Site $targetSite = null, string $targetParentNodePath = '', ?Workspace $targetWorkspace = null)
     {
         $sites = $this->siteRepository->findOnline();
-        $workspaces = $this->workspaceRepository->findAll();
+        $workspaces = array_filter($this->workspaceRepository->findAll()->toArray(), function (Workspace $workspace) {
+            return $this->domainUserService->currentUserCanPublishToWorkspace($workspace);
+        });
 
         $this->view->assignMultiple([
             'sites' => $sites,
